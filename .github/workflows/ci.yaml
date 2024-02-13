@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'LICENSE'
+      - 'README.md'
+      - '.gitignore'
+      - 'changelog.json'
+
+jobs:
+  code_quality:
+    runs-on: ubuntu-latest
+    name: Checks with black, isort
+    container: python:3.9
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run script
+        run: pip install -r requirements.txt
+
+      - name: Black check
+        run: black --check .
+
+      - name: Isort check
+        run: isort --check .
+
+      - name: Notify if failure
+        if: ${{ failure() }}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: html
+          message: |
+            <b>!!! FAILED !!!</b>
+            <b>Failed job:</b> https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            See changes: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+
+
+  docker:
+    runs-on: ubuntu-latest
+    name: Publish on DockerHub
+    needs: code_quality
+    outputs:
+      get_current_tag: ${{ steps.set_current_tag_id.outputs.current_tag }}
+
+    steps:
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.0
+        with:
+          github_token: ${{ secrets.REPOS_TOKEN }}
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build and push
+        id: push_image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          file: Containerfile
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.tag_version.outputs.new_tag }}, ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+
+      - name: Set tag version to output
+        id: set_current_tag_id
+        run: echo "::set-output name=current_tag::${{ steps.tag_version.outputs.new_tag }}"
+
+      - name: Notify if failure
+        if: ${{ failure() }}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: html
+          message: |
+            <b>!!! FAILED !!!</b>
+            <b>Failed job:</b> https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            See changes: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+
+
+  telegram:
+    runs-on: ubuntu-latest
+    name: Notification
+    needs: docker
+    steps:
+
+      - name: Notify in telegram after image was pushed
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: html
+          message: |
+            ${{ github.actor }} created commit:
+
+            Commited with tag: ${{ needs.docker.outputs.get_current_tag }}
+
+            <b>WorkFlows:</b> https://github.com/${{ github.repository }}/actions
+
+            Repository: ${{ github.repository }}
+
+            Branch: ${{ github.ref }}
+
+            <b>Pushed images:</b> <code>docker pull ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ needs.docker.outputs.get_current_tag }},
+            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest</code>
+
+            See changes: https://github.logger_image_tester/${{ github.repository }}/commit/${{ github.sha }}

@@ -1,0 +1,4 @@
+black
+isort
+dynaconf~=3.2.4
+requests~=2.31.0
