@@ -24,7 +24,7 @@ def send_mail_to_telegram(message):
                 "chat_id": CHAT_ID,
                 "text": f"FROM: {msg['from']}\n"
                 f"Subject: {msg['subject']}\n"
-                f"Content-Transfer-Encoding: {msg['content-transfer-encoding']}",
+                f"Please investigate the issue.",
             },
         )
         if response.status_code == 200:
