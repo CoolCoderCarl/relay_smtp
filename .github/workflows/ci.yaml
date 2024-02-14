@@ -8,6 +8,8 @@ on:
       - 'README.md'
       - '.gitignore'
       - 'changelog.json'
+      - 'settings.toml'
+      - 'docker-compose.yaml'
 
 jobs:
   code_quality:
