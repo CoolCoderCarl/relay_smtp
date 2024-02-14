@@ -1,0 +1,7 @@
+[TELEGRAM]
+API_TOKEN = ""
+CHAT_ID = ""
+
+[SMTP]
+HOSTNAME = "0.0.0.0"
+PORT = 31025
