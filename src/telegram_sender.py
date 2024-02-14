@@ -1,3 +1,4 @@
+import email
 import logging
 
 import requests
@@ -15,12 +16,15 @@ def send_mail_to_telegram(message):
     :param message:
     :return:
     """
+    msg = email.message_from_bytes(message)
     try:
         response = requests.post(
             API_URL,
             json={
                 "chat_id": CHAT_ID,
-                "text": message,
+                "text": f"FROM: {msg['from']}\n"
+                f"Subject: {msg['subject']}\n"
+                f"Content-Transfer-Encoding: {msg['content-transfer-encoding']}",
             },
         )
         if response.status_code == 200:

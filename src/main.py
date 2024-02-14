@@ -18,11 +18,8 @@ class FrontierSMTPServer(smtpd.SMTPServer):
         logging.info(f"Message addressed from {mailfrom} to {rcpttos}")
         logging.info(data)
         telegram_sender.send_mail_to_telegram(data)
-        # TODO smtp parsing
 
 
 if __name__ == "__main__":
-    # TODO check if hostname has to be 0.0.0.0 because of docker launch
     server = FrontierSMTPServer((SMTP_HOSTNAME, SMTP_PORT), None)
-
     asyncore.loop()
