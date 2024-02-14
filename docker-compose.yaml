@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  relay_smtp:
+    container_name: relay_smtp
+    image: h0d0user/relay_smtp:latest
+    pull_policy: always
+    restart: always
+    ports:
+      - '1025:1025'
+    hostname: relay_smtp
+    volumes:
+      - "./settings.toml:/opt/settings.toml"
